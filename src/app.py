@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, People, Planets
+from models import db, User, People, Planets, FavCharacter, FavPlanet
 #from models import Person
 
 app = Flask(__name__)
@@ -154,6 +154,97 @@ def delete_planet(planet_id):
     db.session.delete(planet)
     db.session.commit()
     return jsonify({'message': 'Planet deleted'}), 200
+
+# FAV CHARACTERS
+
+@app.route('/user/<int:user_id>/favorite_characters', methods=['GET'])
+def get_favorite_characters(user_id):
+    user = User.query.get(user_id)
+    if user is None:
+        return "User not found", 404
+
+    favorite_characters = [fav_char.serialize() for fav_char in user.fav_characters]
+    return jsonify(favorite_characters), 200
+
+@app.route('/user/<int:user_id>/favorite_characters', methods=['POST'])
+def add_favorite_character(user_id):
+    data = request.json
+    required_fields = ["people_id"]
+    for field in required_fields:
+        if field not in data:
+            return "The '" + field + "' cannot be empty", 400
+
+    user = User.query.get(user_id)
+    if user is None:
+        return "User not found", 404
+
+    favorite_character = FavCharacter(user_id=user_id, people_id=data["people_id"])
+    db.session.add(favorite_character)
+    db.session.commit()
+
+    return "Favorite character added!", 200
+
+@app.route('/user/<int:user_id>/favorite_characters/<int:favorite_id>', methods=['DELETE'])
+def delete_favorite_character(user_id, favorite_id):
+    user = User.query.get(user_id)
+    if user is None:
+        return "User not found", 404
+
+    favorite_character = FavCharacter.query.filter_by(id=favorite_id, user_id=user_id).first()
+    if favorite_character is None:
+        return "Favorite character not found", 404
+
+    db.session.delete(favorite_character)
+    db.session.commit()
+
+    return "Favorite character deleted!", 200
+
+# FAV PLANETS
+
+@app.route('/user/<int:user_id>/favorite_planets', methods=['GET'])
+def get_favorite_planets(user_id):
+    user = User.query.get(user_id)
+    if user is None:
+        return "User not found", 404
+
+    favorite_planets = [fav_planet.serialize() for fav_planet in user.fav_planets]
+    return jsonify(favorite_planets), 200
+
+@app.route('/user/<int:user_id>/favorite_planets', methods=['POST'])
+def add_favorite_planet(user_id):
+    data = request.json
+    required_fields = ["planet_id"]
+    for field in required_fields:
+        if field not in data:
+            return "The '" + field + "' cannot be empty", 400
+
+    user = User.query.get(user_id)
+    if user is None:
+        return "User not found", 404
+
+    favorite_planet = FavPlanet(user_id=user_id, planet_id=data["planet_id"])
+    db.session.add(favorite_planet)
+    db.session.commit()
+
+    return "Favorite planet added!", 200
+
+@app.route('/user/<int:user_id>/favorite_planets/<int:favorite_id>', methods=['DELETE'])
+def delete_favorite_planet(user_id, favorite_id):
+    user = User.query.get(user_id)
+    if user is None:
+        return "User not found", 404
+
+    favorite_planet = FavPlanet.query.filter_by(id=favorite_id, user_id=user_id).first()
+    if favorite_planet is None:
+        return "Favorite planet not found", 404
+
+    db.session.delete(favorite_planet)
+    db.session.commit()
+
+    return "Favorite planet deleted!", 200
+
+
+
 
 
 
