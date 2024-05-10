@@ -43,13 +43,8 @@ def sitemap():
 @app.route('/user', methods=['GET'])
 def handle_hello():
     all_users= User.query.all()
-    print(all_users)
     results = list(map(lambda user: user.serialize(), all_users))
-    print(list(results))
-    response_body = {
-        "msg": "Leer los usuarios "
-    }
-
+   
     return jsonify(results), 200
 
 @app.route('/user', methods=['POST'])
@@ -58,7 +53,7 @@ def create_user():
     required_fields = ["email", "password"]
     for field in required_fields:
         if field not in data: return "The '" + field + "' cannot be empty", 400
-    new_user = User(**data)
+    new_user = User(email = data['email'], password = data['password'], is_active = data['is_active'])
     db.session.add(new_user)
     db.session.commit()
 
@@ -96,7 +91,8 @@ def create_character():
     data = request.json
     required_fields = ["name", "url"]
     for field in required_fields:
-        if field not in data: return "The '" + field + "' cannot be empty", 400
+        if field not in data:
+            return "The '" + field + "' cannot be empty", 400
     new_character = People(**data)
     db.session.add(new_character)
     db.session.commit()
@@ -105,12 +101,16 @@ def create_character():
 
 @app.route('/people/<int:character_id>', methods=['GET'])
 def get_character(character_id):
-    character = People.query.filter_by(id=character_id).first()
+    character = People.query.get(character_id)
+    if character is None:
+        return "Character not found", 404
     return jsonify(character.serialize()), 200
 
 @app.route("/people/<int:character_id>", methods=["DELETE"])
 def delete_character(character_id):
     character = People.query.get(character_id)
+    if character is None:
+        return "Character not found", 404
 
     db.session.delete(character)
     db.session.commit()
@@ -135,27 +135,34 @@ def create_planet():
     data = request.json
     required_fields = ["name", "url"]
     for field in required_fields:
-        if field not in data: return "The '" + field + "' cannot be empty", 400
+        if field not in data:
+            return "The '" + field + "' cannot be empty", 400
     new_planet = Planets(**data)
     db.session.add(new_planet)
     db.session.commit()
 
     return "Planet created!", 200
 
+
+
 @app.route('/planets/<int:planet_id>', methods=['GET'])
 def get_planet(planet_id):
-    planet = Planets.query.filter_by(id=planet_id).first()
+    planet = Planets.query.get(planet_id)
+    if planet is None:
+        return "Planet not found", 404
     return jsonify(planet.serialize()), 200
 
 @app.route("/planets/<int:planet_id>", methods=["DELETE"])
 def delete_planet(planet_id):
     planet = Planets.query.get(planet_id)
+    if planet is None:
+        return "Planet not found", 404
 
     db.session.delete(planet)
     db.session.commit()
     return jsonify({'message': 'Planet deleted'}), 200
 
-# FAV CHARACTERS
+# Fav Characters
 
 @app.route('/user/<int:user_id>/favorite_characters', methods=['GET'])
 def get_favorite_characters(user_id):
@@ -199,7 +206,7 @@ def delete_favorite_character(user_id, favorite_id):
 
     return "Favorite character deleted!", 200
 
-# FAV PLANETS
+# Fav Planets
 
 @app.route('/user/<int:user_id>/favorite_planets', methods=['GET'])
 def get_favorite_planets(user_id):
@@ -242,11 +249,6 @@ def delete_favorite_planet(user_id, favorite_id):
     db.session.commit()
 
     return "Favorite planet deleted!", 200
-
-
-
-
-
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
